@@ -1,0 +1,194 @@
+/*
+ * Copyright(C) 2015 Luvina Software Company
+ *
+ * ListUserServlet.java, July 07, 2015 Nguyễn Trường Quân
+ */
+package net.luvina.manageuser.controllers;
+
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+
+import javax.servlet.RequestDispatcher;
+import javax.servlet.ServletException;
+import javax.servlet.http.HttpServlet;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import javax.servlet.http.HttpSession;
+
+import net.luvina.manageuser.entities.*;
+import net.luvina.manageuser.logics.impl.UserLogicImpl;
+import net.luvina.manageuser.utils.Common;
+import net.luvina.manageuser.utils.Constant;
+import net.luvina.manageuser.utils.MessageProperties;
+
+/**
+ * Servlet implementation class ListUserServlet
+ */
+public class ListUserServlet extends HttpServlet {
+	private static final long serialVersionUID = 1L;
+
+    /**
+     * @see HttpServlet#HttpServlet()
+     */
+    public ListUserServlet() {
+        super();
+        // TODO Auto-generated constructor stub
+    }
+
+	/**
+	 * @see HttpServlet#doGet(HttpServletRequest request, HttpServletResponse response)
+	 */
+	protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+		// TODO Auto-generated method stub
+		 doPost(request, response);
+	}
+
+	/**
+	 * @see HttpServlet#doPost(HttpServletRequest request, HttpServletResponse response)
+	 */
+	protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+		// TODO Auto-generated method stub
+		 try {
+
+	            UserLogicImpl userLogic = new UserLogicImpl();
+	            List<TblGroup> listGroup = new ArrayList<TblGroup>();
+	            List<TblUser> listUser = new ArrayList<TblUser>();
+	            HttpSession session = request.getSession();
+	            TblUser user = new TblUser();
+	            String message = "";
+	            String template = "";
+	            String fullnameSearch = "";
+				String sortByFullName = "";
+				String sortByCodeLevel = "";
+				String sortByEndDate = "";
+				String sortType = "";
+	            int group_id = 0;
+	            int page = 0;
+
+	          //Start fix bug ID 278 – NTQuan 2015/07/02
+	          //Start fix bug ID 206 – NTQuan 2015/07/02
+	            if (!"".equals(Common.checkLogin(session))) {
+					// TODO bug 3
+					template = Common.checkLogin(session);
+					//End fix bug ID 206 – NTQuan 2015/07/02
+				} else {// Get data search from request tìm kiếm
+					if (request.getParameter("sortByFullName") != null) {
+						sortByFullName = request.getParameter("sortByFullName");
+					}
+					if (request.getParameter("sortByCodeLevel") != null) {
+						sortByCodeLevel = request.getParameter("sortByCodeLevel");
+					}
+					if (request.getParameter("sortByEndDate") != null) {
+						sortByEndDate = request.getParameter("sortByEndDate");
+					}
+					if (request.getParameter("sortType") != null) {
+						sortType = request.getParameter("sortType");
+					}
+					//End fix bug ID 278 – NTQuan 2015/07/02
+	            	// Get data search from request
+	                if (request.getParameter("full_name") != null) {
+	                	//Start fix bug ID 291 – NTQuan 2015/07/01
+	                    fullnameSearch = Common.escapeHTML(request.getParameter("full_name").toString());
+	                    //End fix bug ID 291 – NTQuan 2015/07/01
+	                }
+	                if (request.getParameter("group_id") != null) {
+	                	//Start fix bug ID 278 – NTQuan 2015/07/02
+	                	if (request.getParameter("timkiem") != null) {
+							group_id = Integer.parseInt(request.getParameter("group_id").toString());
+						} else if (session.getAttribute("key_search_group_id") != null) {
+							group_id = Integer.parseInt(session.getAttribute("key_search_group_id").toString());
+						} else {
+							group_id = Integer.parseInt(request.getParameter("group_id").toString());
+						}
+	                	//End fix bug ID 278 – NTQuan 2015/07/02
+	                }
+	            //}
+	            if (request.getParameter("page") != null) {
+	                page = Integer.parseInt(request.getParameter("page"));
+	            }
+
+	            user.setFullName(fullnameSearch);
+	            user.setGroupId(group_id);
+
+	            // process Paging
+	            int totalRecord = userLogic.getTotalUsers(user);
+	            int limit = Integer.parseInt(MessageProperties.getMessage("limit"));
+	            int totalPage = (int) Math.ceil((double) totalRecord / limit);
+
+	            if (page == 0) {
+	                page = 1;
+	            }
+
+	            if (totalPage == 0) {
+	                page = 0;
+	            }
+	            if (page > totalPage) {
+	                page = totalPage;
+	            }
+	            int offset = (page > 0) ? limit * ((int) page - 1) : 0;
+
+	            // create strPaging
+	            String strPaging = Common.paging(totalRecord, limit, 3, "ListUser.do", page, "paging");
+
+	            // Search users
+	            /////////////listUser = userLogic.getListUsers(user, offset, limit);
+	          //Start fix bug ID 278 – NTQuan 2015/07/02
+	            if ("full_name".equals(sortType)) {
+					listUser = userLogic.getListUsers(user, offset, limit);
+				} else if ("name_level".equals(sortType)) {
+					listUser = userLogic.getListUsers(user, offset, limit);
+				} else {
+					listUser = userLogic.getListUsers(user, offset, limit);
+				}
+	          //End fix bug ID 278 – NTQuan 2015/07/02
+	            if (listUser.size() == 0) {
+	                message = MessageProperties.getMessage("msg_001");
+	            }
+
+	            // Set data search on session
+	            session.setAttribute("key_search_full_name", fullnameSearch);
+	            session.setAttribute("key_search_group_id", group_id);
+	            //Start fix bug ID 278 – NTQuan 2015/07/02
+	            session.setAttribute("sortByFullName", sortByFullName);
+				session.setAttribute("sortByCodeLevel", sortByCodeLevel);
+				session.setAttribute("sortByEndDate", sortByEndDate);
+				session.setAttribute("sortType", sortType);
+				 //End fix bug ID 278 – NTQuan 2015/07/02
+	            // Set data to page jsp
+	            request.setAttribute("listUser", listUser);
+	            request.setAttribute("strPaging", strPaging);
+	            request.setAttribute("page", page);
+	          //Start fix bug ID 278 – NTQuan 2015/07/02
+	            String str = "";
+				for (int i = 0; i < fullnameSearch.length(); i++) {
+					str += "\\";
+				}
+				if (str.equals(fullnameSearch)) {
+					fullnameSearch = fullnameSearch.substring(fullnameSearch.length() / 2);
+				}
+				 //End fix bug ID 278 – NTQuan 2015/07/02
+	            request.setAttribute("full_name", fullnameSearch);
+	            request.setAttribute("group_id", group_id);
+
+	            // Goto page listUser.jsp
+	            template = Constant.ADM002;
+				}
+	            //get All Groups
+	            listGroup = userLogic.getAllGroups();
+	            request.setAttribute("listGroup", listGroup);
+
+	            // Set message
+	            request.setAttribute("message", message);
+
+
+	            // Forward
+	            RequestDispatcher req = request.getRequestDispatcher(template);
+	            req.forward(request, response);
+
+	        } catch (Exception ex) {
+	            ex.printStackTrace();
+	        }
+	}
+
+}

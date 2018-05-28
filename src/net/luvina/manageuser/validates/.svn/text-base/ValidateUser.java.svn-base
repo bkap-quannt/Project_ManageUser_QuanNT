@@ -1,0 +1,45 @@
+/**
+ * Copyright(C), 2015, Luvina Software Company
+ * ValidateUser.java, Jul 8, 2015, Nguyễn Trường Quân
+ */
+package net.luvina.manageuser.validates;
+
+import java.util.ArrayList;
+import java.util.List;
+
+import net.luvina.manageuser.logics.impl.UserLogicImpl;
+import net.luvina.manageuser.utils.MessageProperties;
+
+/**
+ * @author LA-AM
+ *
+ */
+public class ValidateUser {
+
+	/**
+	 * validateLogin
+	 * @param loginId String loginId
+	 * @param password String password
+	 * @return list errorMess
+	 */
+	public static List<String> validateLogin(String loginId, String password) {
+		List<String> lsErrorMess = new ArrayList<String>();
+		if (loginId.trim().length() == 0) {
+			lsErrorMess.add(MessageProperties.getMessage("error_001"));
+		}
+		if (password.length() == 0) {
+			lsErrorMess.add(MessageProperties.getMessage("error_002"));
+		}
+		UserLogicImpl userLogic = new UserLogicImpl();
+		if(loginId.trim().length() != 0 && password.length() != 0){
+			// Start fix bug ID 157 và 294 – NTQuan 2015/06/30
+			//if (userLogic.existLoginId(loginId, password)) {
+				if (!userLogic.existLoginId(loginId, password)) {
+				// End fix bug ID 157 và 294 – NTQuan 2015/06/30
+				lsErrorMess.add(MessageProperties.getMessage("error_003"));
+			}
+		}
+
+		return lsErrorMess;
+	}
+}
